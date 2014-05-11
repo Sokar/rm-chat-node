@@ -175,6 +175,7 @@
                 $('#roomtitle').html($("#room option:selected").text());
                 $('#chat').show();
                 $('#enteruname').hide();
+                $('#message_input').focus();
 
                 $('#chat').on('submit', function() {
                     if ($('#message_input').val() != "") {
