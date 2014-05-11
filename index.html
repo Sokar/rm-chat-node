@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -16,19 +15,51 @@
                 height:100%;
                 margin: 0px;
                 padding:0px;
-                padding-top:60px;
+                padding-top:10px;
                 // position:fixed;
                 top:0px;
                 bottom:0px;
                 left:0px;
                 right:0px;
             }
-            .msg {
-                border-bottom:1px solid #ddd;
-                padding-top:4px;
+            #roomtitle {
+                position:fixed;
+                top:-20px;
+                left:0px;
+                right:0px;
+                height:40px;
+                text-align:center;
+                background-color: #fff;
+                border-bottom:1px solid #ccc;
+            }
+            #users {
+                position:fixed;
+                top:20px;
+                width:160px;
+                right:0px;
+                bottom:20px;
+                text-align:left;
+                background-color: #fff;
+                border:1px solid #ccc;
+                padding-left:0px;
+                list-style-type: none;
+            }
+            #messages {
+                padding-top:50px;
+                padding-bottom:20px;
+                padding-right:160px;
+                padding-left:0px;
+                list-style-type: none;
+            }
+            #messages li {
+                padding: 4px 10px;
+                border-bottom:1px solid #ccc;
+            }
+            #messages li span {
+                padding-right:10px;
+                font-weight:bold;
             }
             #chatlog {
-                padding-top:40px;
             }
             #reset {
                 display:none;
@@ -39,7 +70,7 @@
                 border:1px solid #ccc;
                 font-size:14pt;
                 position:fixed;
-                top:2px;
+                bottom:0px;
                 left:0px;
                 right:0px;
                 padding:4px;
@@ -70,63 +101,36 @@
             #chat {
                 display:none;
             }
-            .drag {
-                position: absolute;
-                left: 100px;
-                top: 40px;
-                background: #9fe1e7;
-                border-radius: 50px;
-                width: 50px;
-                height: 50px;
-                z-index:998;
-                background: #64a1d4; 
-                 box-shadow: inset 0 0 20px #c5e3fc;
-                 -webkit-box-shadow: inset 0 0 20px #c5e3fc;
-                 -moz-box-shadow: inset 0 0 20px #c5e3fc;
-                left: 10px;
-                opacity:.3;
+            .msg_server {
+                color:#666;
             }
-            .draggerText,.noWebSocket {
-                color:#888;
-                padding-top:10px;
-                padding-bottom:10px;
-                text-align:center;
-                position:relative;
-                width:320px;
-                margin: 0 auto;
+            .msg_private {
+                color:#f00;
             }
-            .dragger {
-                display:none;
-                //position:fixed;
-                background-color:#f9f9f9;
-                top:0px;
-                left:0px;
-                width:320px;
-                margin: 0 auto;
-                height:320px;
-            }
-            .blocked {
-                 z-index:999;
-                 opacity:.85;
+            .msg_me {
+                color:#0ae;
             }
 
-            
-            .drag.blocked {
-             background-color:#ffd800;
-             box-shadow: inset 0 0 20px #f49711;
-                 -webkit-box-shadow: inset 0 0 20px #f49711;
-                 -moz-box-shadow: inset 0 0 20px #f49711;
-            }
 
         </style>
     </head>
     <body>
     <form id="chat" action="javascript:;" style="display:none;">
         <input type="text" id="message_input"/>
+        <ul id="users"></ul>
+        <h3 id="roomtitle"></h3>
         <ul id="messages"></ul>
     </form>
     <form id="enteruname" action="javascript:;">
-        Username: <input type="text" id="username"/>
+        Username: <input type="text" id="username" /><br/>
+        <select id="room">
+            <option value="lobby">Lobby</option>
+            <option value="design">Diseño</option>
+            <option value="programacion">Programación</option>
+            <option value="marketing">Marketing</option>
+            <option value="comercial">Comercial</option>
+            <option value="direccion">Dirección</option>
+        </select>
     </form>
 
 
@@ -139,48 +143,69 @@
             var conn_options = {
               'sync disconnect on unload':true
             };
-            var socket = io.connect('192.168.1.37:8081', conn_options);
+            var socket = io.connect('192.168.1.37:8085', conn_options);
 
             socket.on('connect', function() {
                 init();
             });
+            socket.on('disconnected_user', function() {
+                $('#chat').hide();
+                $('#enteruname').show();
+                $('#chat').html("");
+            });
+
 
             var init = function() {
                 $('#enteruname').on('submit', function() {
-                    setNickname($('#username').val());
+                    setNickname($('#username').val(),$('#room').val());
                 });
             };
 
-            var setNickname = function(nickname) {
-                socket.emit('set_nickname', nickname, function(is_available) {
+            var setNickname = function(nickname,room) {
+                socket.emit('set_nickname', nickname, room, function(is_available) {
                     if (is_available) {
                         setUpChat(nickname);
                     } else {
-                        alert("ohhh! usuario ya existe. Prueba otro!");
+                        alert("Usuario ya existente, o carácteres no permitidos");
                     }
                 });
             };
 
             var setUpChat = function(nickname) {
+                $('#roomtitle').html($("#room option:selected").text());
                 $('#chat').show();
                 $('#enteruname').hide();
 
                 $('#chat').on('submit', function() {
-                    sendMessage($('#message_input').val());
+                    if ($('#message_input').val() != "") {
+                        sendMessage($('#message_input').val());
+                        $('#message_input').val("");
+                    }
                 });
 
-                socket.on('message', function(nickname,message) {
-                    addMessage(nickname, message);
+                
+                socket.on('updateClients', function(clients) {
+                    $('#users').html("");
+                    for (var client in clients) {
+                        console.log(clients[client]);
+                        $('#users').append($("<li class='usr'><span>@"+clients[client]+"</span></li>"));
+                    }
+                    
+
                 });
 
+                socket.on('message', function(nickname,message,tipo) {
+                    addMessage(nickname, message, tipo);
+                });
             };
 
             var sendMessage = function(msg) {
                 socket.emit('message',msg);
             };
 
-            var addMessage = function(nickname, message) {
-                $('#messages').append($("<li>@"+nickname+": "+message+"</li>"))
+            var addMessage = function(nickname, message, tipo) {
+                $('#messages').append($("<li class='"+tipo+"'><span>@"+nickname+"</span> "+message+"</li>"));
+                $("html, body").animate({ scrollTop: $(document).height() }, 1);
             };
         });
 
