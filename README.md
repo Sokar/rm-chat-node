@@ -1,4 +1,4 @@
-NODE CHAT WITH ROOMS
+NODE.JS CHAT WITH ROOMS
 
 (Testing github...)
 
