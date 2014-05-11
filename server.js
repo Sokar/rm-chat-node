@@ -1,5 +1,6 @@
 var fs = require('fs');
 var io = require('socket.io').listen(8081, { log: false });
+var oa;
 
 io.configure(function () { 
     io.set("origins","http://192.168.1.37:*");
